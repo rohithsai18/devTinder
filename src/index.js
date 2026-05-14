@@ -5,24 +5,45 @@ const User = require('./models/user')
 
 
 const app = express();
+// middleware to convert req into json format
+app.use(express.json())
 
 app.post('/signup', async (req, res) => {
     try {
-        const userObj = {
-            firstName: 'Rohith sai',
-            lastName: 'Garlapati',
-            age: 32,
-            gender: 'm',
-            emailId: 'rohithsai18@gmail.com',
-            password: 'Rohith@123'
-        }
-
-        const user = new User(userObj)
+        const user = new User(req.body)
         await user.save();
         res.send('User added successfully')
     } catch (err) {
         res.status(500).send('Error saving user: ' + err.message)
     }
+})
+
+app.get('/feed', async(req, res) => {
+    try {
+        const users = await User.find({})
+        res.send(users)
+    }   catch (err) {
+        res.status(500).send('fetching users failed'+ err.message)
+    }
+
+})
+
+app.get('/user/:email', async(req, res) => {
+    const email = req.params.email
+    try {
+        const user = await User.find({
+            emailId: email
+        })
+
+        if(user.length) {
+            res.send(user)
+        } else {
+            res.status(404).send("user not found")
+        }
+    }   catch (err) {
+        res.status(500).send('fetching user failed'+ err.message)
+    }
+
 })
 
 connectDB().then(() => {
