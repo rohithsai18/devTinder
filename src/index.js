@@ -18,32 +18,58 @@ app.post('/signup', async (req, res) => {
     }
 })
 
-app.get('/feed', async(req, res) => {
+app.get('/feed', async (req, res) => {
     try {
         const users = await User.find({})
         res.send(users)
-    }   catch (err) {
-        res.status(500).send('fetching users failed'+ err.message)
+    } catch (err) {
+        res.status(500).send('fetching users failed' + err.message)
     }
 
 })
 
-app.get('/user/:email', async(req, res) => {
+app.get('/user/:email', async (req, res) => {
     const email = req.params.email
     try {
         const user = await User.find({
             emailId: email
         })
 
-        if(user.length) {
+        if (user.length) {
             res.send(user)
         } else {
             res.status(404).send("user not found")
         }
-    }   catch (err) {
-        res.status(500).send('fetching user failed'+ err.message)
+    } catch (err) {
+        res.status(500).send('fetching user failed' + err.message)
     }
 
+})
+
+app.delete('/user/:id', async (req, res) => {
+    const id = req.params.id
+    try {
+        await User.findOneAndDelete(id)
+
+        res.status(200).send("deleted successfully")
+    } catch (err) {
+        res.status(500).send('fetching user failed' + err.message)
+
+    }
+
+})
+
+app.patch('/user', async (req, res) => {
+    const body = req.body;
+
+    try {
+        await User.findByIdAndUpdate({ _id: req.body.id }, body)
+
+        res.status(200).send("updated successfully")
+    } catch (err) {
+        res.status(500).send('fetching user failed' + err.message)
+
+    }
 })
 
 connectDB().then(() => {
