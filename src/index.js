@@ -2,6 +2,8 @@ const express = require('express');
 const { AdminAuth } = require('./middlewares/auth')
 const { connectDB } = require('./database')
 const User = require('./models/user')
+const { validateSignUpData } = require('../utils/validations')
+const bcrypt = require('bcrypt')
 
 
 const app = express();
@@ -9,8 +11,25 @@ const app = express();
 app.use(express.json())
 
 app.post('/signup', async (req, res) => {
+
+
+    const data = req.body
+
     try {
-        const user = new User(req.body)
+        //validate the data
+        validateSignUpData(req)
+
+        //encrypt the password
+
+        const passwordHash = await bcrypt.hash(req.body.password, 10);
+
+        const user = new User({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            password: passwordHash,
+            emailId: data.emailId
+        })
+
         await user.save();
         res.send('User added successfully')
     } catch (err) {
