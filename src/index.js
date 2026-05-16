@@ -1,18 +1,19 @@
 const express = require('express');
-const { AdminAuth } = require('./middlewares/auth')
+const { userAuth } = require('./middlewares/auth')
 const { connectDB } = require('./database')
 const User = require('./models/user')
 const { validateSignUpData } = require('../utils/validations')
 const bcrypt = require('bcrypt')
+const validator = require('validator')
+const cookieParser = require('cookie-parser')
 
 
 const app = express();
 // middleware to convert req into json format
 app.use(express.json())
+app.use(cookieParser())
 
 app.post('/signup', async (req, res) => {
-
-
     const data = req.body
 
     try {
@@ -47,6 +48,54 @@ app.get('/feed', async (req, res) => {
 
 })
 
+app.post('/login', async (req, res) => {
+    try {
+        const { emailId, password } = req.body;
+
+        if (!validator.isEmail(emailId)) {
+            throw new Error("Enter valid email")
+        }
+
+        const user = await User.findOne({
+            emailId: emailId
+        })
+
+        if (!user) {
+            throw new Error("emailId is not present")
+        }
+
+        const passwordValid = await user.validatePassword(password);
+
+        if (!passwordValid) {
+            throw new Error("Enter valid password")
+        } else {
+            // create a JWT token
+            const token = await user.getJWT();
+
+
+            //attach cookie
+            res.cookie('token', token, {
+                expiresIn: new Date(Date.now()) * 8 * 360000
+            })
+            res.status(200).send('login succesfully');
+        }
+
+
+
+    } catch (err) {
+        res.status(500).send('fetching users failed' + err.message)
+    }
+})
+
+app.get('/profile', userAuth, async (req, res) => {
+    try {
+        const user = req.user;
+        res.send(user)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
 app.get('/user/:email', async (req, res) => {
     const email = req.params.email
     try {
@@ -76,6 +125,12 @@ app.delete('/user/:id', async (req, res) => {
 
     }
 
+})
+
+app.post('/sendConnectionRequest', userAuth, async (req, res) => {
+    const user = req.user;
+
+    res.send(user.firstName + ' Sent connection request')
 })
 
 app.patch('/user/:userId', async (req, res) => {
